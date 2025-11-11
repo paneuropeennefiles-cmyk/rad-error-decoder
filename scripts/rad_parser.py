@@ -274,15 +274,16 @@ class RADParser:
         entries = []
 
         # Déterminer le type et les noms de colonnes spécifiques
+        # NOTE: Les \n ont été remplacés par des espaces lors du nettoyage des colonnes (ligne 127)
         if 'ARR' in sheet_name:
             entry_type = 'Arrival'
             id_col = 'ARR ID'
             ad_col = 'ARR AD'
-            time_col = 'ARR Time\nApplicability'
-            goal_col = 'ARR Operational\nGoal'
+            time_col = 'ARR Time Applicability'  # Espace, pas \n
+            goal_col = 'ARR Operational Goal'  # Espace, pas \n
             remarks_col = 'ARR Remarks'
             extra_cols = {
-                'first_pt_star': 'First PT STAR /\nSTAR ID',
+                'first_pt_star': 'First PT STAR / STAR ID',  # Espace, pas \n
                 'dct_arr_pt': 'DCT ARR PT',
                 'arr_fpl_option': 'ARR FPL Option'
             }
@@ -290,11 +291,11 @@ class RADParser:
             entry_type = 'Departure'
             id_col = 'DEP ID'
             ad_col = 'DEP AD'
-            time_col = 'DEP Time\nApplicability'
-            goal_col = 'DEP Operational\nGoal'
+            time_col = 'DEP Time Applicability'  # Espace, pas \n
+            goal_col = 'DEP Operational Goal'  # Espace, pas \n
             remarks_col = 'DEP Remarks'
             extra_cols = {
-                'last_pt_sid': 'Last PT SID /\nSID ID',
+                'last_pt_sid': 'Last PT SID / SID ID',  # Espace, pas \n
                 'dct_dep_pt': 'DCT DEP PT',
                 'dep_fpl_options': 'DEP FPL Options'
             }
@@ -302,7 +303,7 @@ class RADParser:
             entry_type = 'Condition'
             id_col = 'RAD Application ID'
             ad_col = None  # Pas d'aérodrome pour les conditions
-            time_col = 'Time\nApplicability'
+            time_col = 'Time Applicability'  # Espace, pas \n
             goal_col = None
             remarks_col = None
             extra_cols = {
@@ -318,12 +319,12 @@ class RADParser:
             # Structure de base commune à tous les types
             entry = {
                 'id': self._safe_str(row.get(id_col)),
-                'change_indicator': self._safe_str(row.get('Change\nInd.')),
-                'valid_from': self._safe_str(row.get('Valid\nFrom')),
-                'valid_until': self._safe_str(row.get('Valid\nUntil')),
+                'change_indicator': self._safe_str(row.get('Change Ind.')),  # Espace, pas \n
+                'valid_from': self._safe_str(row.get('Valid From')),  # Espace, pas \n
+                'valid_until': self._safe_str(row.get('Valid Until')),  # Espace, pas \n
                 'nas_fab': self._safe_str(row.get('NAS / FAB')),
-                'release_date': self._safe_str(row.get('Release\nDate')),
-                'special_event': self._safe_str(row.get('Special Event and \nCrisis')),
+                'release_date': self._safe_str(row.get('Release Date')),  # Espace, pas \n
+                'special_event': self._safe_str(row.get('Special Event and Crisis')),  # Espace, pas \n
 
                 'annex': '3A',
                 'type': f'Aerodrome Connectivity - {entry_type}',

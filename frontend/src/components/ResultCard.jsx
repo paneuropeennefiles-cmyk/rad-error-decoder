@@ -100,6 +100,29 @@ export function ResultCard({ entry, highlightTerms = [] }) {
           </Field>
         )}
 
+        {/* DCT ARR/DEP Point (Annex 3A) */}
+        {(entry.dct_arr_pt || entry.dct_dep_pt) && (
+          <Field label="DCT Point" mono>
+            {highlightText(entry.dct_arr_pt || entry.dct_dep_pt, highlightTerms)}
+          </Field>
+        )}
+
+        {/* First PT STAR / Last PT SID (Annex 3A) */}
+        {(entry.first_pt_star || entry.last_pt_sid) && (
+          <Field label={entry.first_pt_star ? "First PT STAR / STAR ID" : "Last PT SID / SID ID"} mono>
+            {highlightText(entry.first_pt_star || entry.last_pt_sid, highlightTerms)}
+          </Field>
+        )}
+
+        {/* ARR/DEP FPL Options (Annex 3A) - TRÈS IMPORTANT */}
+        {(entry.arr_fpl_option || entry.dep_fpl_options) && (
+          <Field label={entry.arr_fpl_option ? "ARR FPL Options" : "DEP FPL Options"}>
+            <pre className="p-3 bg-amber-50 rounded-lg text-sm font-mono whitespace-pre-wrap overflow-x-auto border border-amber-200">
+              {highlightText(entry.arr_fpl_option || entry.dep_fpl_options, highlightTerms)}
+            </pre>
+          </Field>
+        )}
+
         {/* Utilization - Le plus important */}
         {entry.utilization && (
           <Field label="Utilization">
@@ -240,9 +263,29 @@ function formatForCopy(entry) {
   if (entry.point_or_airspace) {
     lines.push(`Point/Airspace: ${entry.point_or_airspace}`)
   }
-  
+
   if (entry.airway) {
     lines.push(`Airway: ${entry.from_point || ''} ${entry.airway} ${entry.to_point || ''}`.trim())
+  }
+
+  if (entry.aerodrome) {
+    lines.push(`Aerodrome: ${entry.aerodrome}`)
+  }
+
+  if (entry.dct_arr_pt || entry.dct_dep_pt) {
+    lines.push(`DCT Point: ${entry.dct_arr_pt || entry.dct_dep_pt}`)
+  }
+
+  if (entry.first_pt_star) {
+    lines.push(`First PT STAR: ${entry.first_pt_star}`)
+  }
+
+  if (entry.last_pt_sid) {
+    lines.push(`Last PT SID: ${entry.last_pt_sid}`)
+  }
+
+  if (entry.arr_fpl_option || entry.dep_fpl_options) {
+    lines.push('', 'FPL Options:', entry.arr_fpl_option || entry.dep_fpl_options)
   }
 
   if (entry.utilization) {
