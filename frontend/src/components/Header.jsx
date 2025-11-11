@@ -1,10 +1,27 @@
 import { useState } from 'react'
 
 /**
- * Header component - Shows app title, RAD version info, and info modal
+ * Header component - Shows app title, RAD version info, version selector, and info modal
  */
-export function Header({ cycle, version }) {
+export function Header({ cycle, version, availableVersions, currentVersion, selectedRadType, onVersionChange }) {
   const [showInfo, setShowInfo] = useState(false)
+  const [showVersionSelector, setShowVersionSelector] = useState(false)
+
+  const getVersionLabel = (versionType) => {
+    if (!availableVersions) return ''
+
+    const versionInfo = availableVersions.versions[versionType]
+    if (!versionInfo) return ''
+
+    return `${versionInfo.cycle} v${versionInfo.version}`
+  }
+
+  const getVersionBadgeColor = () => {
+    if (currentVersion === 'auto') {
+      return selectedRadType === 'future' ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'
+    }
+    return currentVersion === 'future' ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'
+  }
 
   return (
     <>
@@ -26,15 +43,135 @@ export function Header({ cycle, version }) {
               </div>
             </div>
 
-            {/* Version Info & Help Button */}
+            {/* Version Info & Controls */}
             <div className="flex items-center space-x-4">
-              {/* RAD Version Badge */}
+              {/* RAD Version Badge with Selector */}
               {cycle && (
-                <div className="hidden sm:block">
-                  <div className="text-xs text-gray-500">Cycle AIRAC</div>
-                  <div className="font-mono font-semibold text-blue-600">
-                    {cycle} {version && `v${version}`}
-                  </div>
+                <div className="hidden sm:block relative">
+                  <button
+                    onClick={() => setShowVersionSelector(!showVersionSelector)}
+                    className={`px-3 py-2 rounded-lg transition-all hover:shadow-md ${getVersionBadgeColor()}`}
+                  >
+                    <div className="text-xs text-gray-600 mb-0.5">
+                      {currentVersion === 'auto' ? '🤖 Auto' : currentVersion === 'current' ? '🟢 Actuel' : '🔵 Futur'}
+                    </div>
+                    <div className="font-mono font-semibold flex items-center space-x-1">
+                      <span>{cycle} {version && `v${version}`}</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {/* Version Selector Dropdown */}
+                  {showVersionSelector && availableVersions && (
+                    <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                      <div className="p-3 border-b border-gray-200">
+                        <h3 className="font-semibold text-gray-900 text-sm">Sélectionner la version RAD</h3>
+                      </div>
+
+                      <div className="p-2 space-y-1">
+                        {/* Auto */}
+                        <button
+                          onClick={() => {
+                            onVersionChange('auto')
+                            setShowVersionSelector(false)
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                            currentVersion === 'auto'
+                              ? 'bg-blue-50 text-blue-700 font-medium'
+                              : 'hover:bg-gray-50 text-gray-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium">🤖 Automatique</div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                Sélection basée sur la date
+                              </div>
+                            </div>
+                            {currentVersion === 'auto' && (
+                              <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Current */}
+                        <button
+                          onClick={() => {
+                            onVersionChange('current')
+                            setShowVersionSelector(false)
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                            currentVersion === 'current'
+                              ? 'bg-green-50 text-green-700 font-medium'
+                              : 'hover:bg-gray-50 text-gray-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium">🟢 Cycle Actuel</div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {getVersionLabel('current')}
+                                {availableVersions.versions.current.effectiveDate && (
+                                  <> • {new Date(availableVersions.versions.current.effectiveDate).toLocaleDateString('fr-FR')}</>
+                                )}
+                              </div>
+                            </div>
+                            {currentVersion === 'current' && (
+                              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Future */}
+                        <button
+                          onClick={() => {
+                            onVersionChange('future')
+                            setShowVersionSelector(false)
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                            currentVersion === 'future'
+                              ? 'bg-purple-50 text-purple-700 font-medium'
+                              : 'hover:bg-gray-50 text-gray-700'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium">🔵 Cycle Futur (AIRAC+1)</div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {getVersionLabel('future')}
+                                {availableVersions.versions.future.effectiveDate && (
+                                  <> • {new Date(availableVersions.versions.future.effectiveDate).toLocaleDateString('fr-FR')}</>
+                                )}
+                              </div>
+                            </div>
+                            {currentVersion === 'future' && (
+                              <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        </button>
+                      </div>
+
+                      <div className="p-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
+                        💡 En mode automatique, la version appropriée est sélectionnée selon la date effective du cycle AIRAC
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Overlay to close dropdown */}
+                  {showVersionSelector && (
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowVersionSelector(false)}
+                    />
+                  )}
                 </div>
               )}
 

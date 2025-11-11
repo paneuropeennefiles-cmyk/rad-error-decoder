@@ -21,44 +21,135 @@ function App() {
     changeStatus: null
   })
 
+  // Multi-version state
+  const [availableVersions, setAvailableVersions] = useState(null)
+  const [currentVersion, setCurrentVersion] = useState('auto') // 'auto', 'current', 'future'
+  const [selectedRadType, setSelectedRadType] = useState(null) // Actual loaded version
+
   // Load RAD data on mount
   useEffect(() => {
-    loadRADData()
-    
+    loadRADVersions()
+
     // Listen for online/offline events
     window.addEventListener('online', () => setIsOffline(false))
     window.addEventListener('offline', () => setIsOffline(true))
-    
+
     return () => {
       window.removeEventListener('online', () => setIsOffline(false))
       window.removeEventListener('offline', () => setIsOffline(true))
     }
   }, [])
 
+  // Load RAD when version selection changes
+  useEffect(() => {
+    if (availableVersions) {
+      loadRADData()
+    }
+  }, [currentVersion, availableVersions])
+
+  const loadRADVersions = async () => {
+    try {
+      setLoading(true)
+
+      // Load versions index
+      const response = await fetch(`${import.meta.env.BASE_URL}rad-versions.json`)
+      if (!response.ok) {
+        // Fallback to single-file mode
+        console.warn('Multi-version not available, falling back to single file')
+        await loadRADDataLegacy()
+        return
+      }
+
+      const versions = await response.json()
+      setAvailableVersions(versions)
+      setLoading(false)
+    } catch (err) {
+      console.error('Error loading versions:', err)
+      // Try legacy single-file mode
+      await loadRADDataLegacy()
+    }
+  }
+
   const loadRADData = async () => {
     try {
       setLoading(true)
-      
-      // Try to load from cache first (IndexedDB)
-      // For now, just load from public folder
-      const response = await fetch(`${import.meta.env.BASE_URL}rad-data.json`)
-      if (!response.ok) {
-        throw new Error('Failed to load RAD data')
+
+      // Determine which version to load
+      let radType = currentVersion
+
+      if (currentVersion === 'auto' && availableVersions) {
+        // Auto-select based on current date
+        radType = selectVersionByDate(availableVersions)
       }
-      
-      const data = await response.json()
+
+      const actualType = radType === 'auto' ? 'current' : radType
+
+      // Load RAD data
+      const dataResponse = await fetch(`${import.meta.env.BASE_URL}rad-data-${actualType}.json`)
+      if (!dataResponse.ok) {
+        throw new Error(`Failed to load RAD data: ${actualType}`)
+      }
+
+      const data = await dataResponse.json()
       setRadData(data)
-      
+      setSelectedRadType(actualType)
+
       // Initialize search engine
       const engine = new RADSearchEngine(data)
       setSearchEngine(engine)
-      
+
       setLoading(false)
     } catch (err) {
       console.error('Error loading RAD:', err)
       setError(err.message)
       setLoading(false)
     }
+  }
+
+  const loadRADDataLegacy = async () => {
+    try {
+      setLoading(true)
+
+      // Legacy single-file mode
+      const response = await fetch(`${import.meta.env.BASE_URL}rad-data.json`)
+      if (!response.ok) {
+        throw new Error('Failed to load RAD data')
+      }
+
+      const data = await response.json()
+      setRadData(data)
+      setSelectedRadType('current')
+
+      // Initialize search engine
+      const engine = new RADSearchEngine(data)
+      setSearchEngine(engine)
+
+      setLoading(false)
+    } catch (err) {
+      console.error('Error loading RAD:', err)
+      setError(err.message)
+      setLoading(false)
+    }
+  }
+
+  const selectVersionByDate = (versions) => {
+    // Select version based on current date and effective dates
+    const today = new Date()
+
+    const currentEffective = new Date(versions.versions.current.effectiveDate)
+    const futureEffective = new Date(versions.versions.future.effectiveDate)
+
+    // If today is >= future effective date, use future
+    if (today >= futureEffective) {
+      return 'future'
+    }
+
+    // Otherwise use current
+    return 'current'
+  }
+
+  const handleVersionChange = (version) => {
+    setCurrentVersion(version)
   }
 
   const handleSearch = ({ query, parsed }) => {
@@ -125,9 +216,13 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Header 
-        cycle={radData?.metadata?.cycle} 
+      <Header
+        cycle={radData?.metadata?.cycle}
         version={radData?.metadata?.version}
+        availableVersions={availableVersions}
+        currentVersion={currentVersion}
+        selectedRadType={selectedRadType}
+        onVersionChange={handleVersionChange}
       />
 
       {/* Offline Indicator */}
