@@ -151,34 +151,39 @@ jobs:
           CURRENT_VERSION=$(jq -r '.version' frontend/public/metadata-current.json)
           FUTURE_VERSION=$(jq -r '.version' frontend/public/metadata-future.json)
 
-          git commit -m "Auto-update RAD: cycles ${CURRENT_CYCLE}/${FUTURE_CYCLE}
+          # Créer le message de commit
+          COMMIT_MSG=$(cat <<EOF
+          Auto-update RAD: cycles ${CURRENT_CYCLE}/${FUTURE_CYCLE}
 
-Updated RAD data from EUROCONTROL:
-- Current: Cycle ${CURRENT_CYCLE} v${CURRENT_VERSION}
-- Future: Cycle ${FUTURE_CYCLE} v${FUTURE_VERSION}
+          Updated RAD data from EUROCONTROL:
+          - Current: Cycle ${CURRENT_CYCLE} v${CURRENT_VERSION}
+          - Future: Cycle ${FUTURE_CYCLE} v${FUTURE_VERSION}
 
-🤖 Automated update via GitHub Actions
-Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          Automated update via GitHub Actions
+          Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          EOF
+          )
 
+          git commit -m "$COMMIT_MSG"
           git push
 
-          echo "✅ Changes committed and pushed to GitHub"
+          echo "Changes committed and pushed to GitHub"
 
       - name: Summary
         if: always()
         run: |
-          echo "## 📊 RAD Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## RAD Update Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ steps.check_changes.outputs.changed }}" == "true" ]; then
-            echo "✅ **RAD updated successfully**" >> $GITHUB_STEP_SUMMARY
+            echo "**RAD updated successfully**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "- **Current**: Cycle ${{ steps.download.outputs.current_cycle }}" >> $GITHUB_STEP_SUMMARY
             echo "- **Future**: Cycle ${{ steps.download.outputs.future_cycle }}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "🚀 Deployment will be triggered automatically" >> $GITHUB_STEP_SUMMARY
+            echo "Deployment will be triggered automatically" >> $GITHUB_STEP_SUMMARY
           else
-            echo "ℹ️ **No changes detected**" >> $GITHUB_STEP_SUMMARY
+            echo "**No changes detected**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "RAD versions are already up to date." >> $GITHUB_STEP_SUMMARY
           fi
