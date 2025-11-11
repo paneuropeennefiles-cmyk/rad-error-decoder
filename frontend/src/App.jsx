@@ -196,7 +196,7 @@ function App() {
           <p>
             RAD Error Decoder - Données EUROCONTROL - 
             <a 
-              href="https://github.com/[votre-compte]/rad-error-decoder" 
+              href="https://github.com/paneuropeennefiles-cmyk/rad-error-decoder" 
               className="text-primary-600 hover:text-primary-700 ml-1"
               target="_blank"
               rel="noopener noreferrer"
