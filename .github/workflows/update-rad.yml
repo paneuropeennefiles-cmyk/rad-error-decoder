@@ -1,0 +1,184 @@
+name: Auto-update RAD (Current + Future)
+
+on:
+  # S'exécute tous les jeudis à 8h UTC (9h Paris hiver / 10h Paris été)
+  schedule:
+    - cron: '0 8 * * 4'  # Every Thursday at 8:00 AM UTC
+
+  # Permet de lancer manuellement depuis l'interface GitHub
+  workflow_dispatch:
+
+  # Permet de tester en commentant/décommentant
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - '.github/workflows/update-rad.yml'
+
+jobs:
+  update-rad:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # Nécessaire pour pusher les changements
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Historique complet pour le commit
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          pip install requests beautifulsoup4 pandas openpyxl
+
+      - name: Download RAD files from EUROCONTROL
+        id: download
+        run: |
+          echo "📥 Downloading RAD Current + Future from EUROCONTROL..."
+          python scripts/rad_downloader.py --output-dir data/raw
+
+          # Vérifier que les fichiers ont été téléchargés
+          if [ ! -f "data/raw/rad_downloads_metadata.json" ]; then
+            echo "❌ Download failed: metadata file not found"
+            exit 1
+          fi
+
+          # Extraire les versions téléchargées
+          CURRENT_CYCLE=$(jq -r '.files.current.cycle' data/raw/rad_downloads_metadata.json)
+          FUTURE_CYCLE=$(jq -r '.files.future.cycle' data/raw/rad_downloads_metadata.json)
+
+          echo "current_cycle=$CURRENT_CYCLE" >> $GITHUB_OUTPUT
+          echo "future_cycle=$FUTURE_CYCLE" >> $GITHUB_OUTPUT
+
+          echo "✅ Downloaded: Current=$CURRENT_CYCLE, Future=$FUTURE_CYCLE"
+
+      - name: Parse RAD files to JSON
+        run: |
+          echo "📊 Parsing Current RAD..."
+          python scripts/rad_parser.py \
+            "data/raw/RAD_${{ steps.download.outputs.current_cycle }}_v"*.xlsx \
+            "frontend/public/rad-data-current.json"
+
+          echo "📊 Parsing Future RAD..."
+          python scripts/rad_parser.py \
+            "data/raw/RAD_${{ steps.download.outputs.future_cycle }}_v"*.xlsx \
+            "frontend/public/rad-data-future.json"
+
+          echo "✅ Parsing completed"
+
+      - name: Create metadata files
+        run: |
+          # Charger les métadonnées de téléchargement
+          CURRENT_DATA=$(cat data/raw/rad_downloads_metadata.json | jq '.files.current')
+          FUTURE_DATA=$(cat data/raw/rad_downloads_metadata.json | jq '.files.future')
+
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Créer metadata-current.json
+          echo "$CURRENT_DATA" | jq --arg ts "$TIMESTAMP" '{
+            cycle: .cycle,
+            effectiveDate: .effective_date,
+            version: .version,
+            generatedAt: $ts,
+            source: (.path | split("/") | last),
+            downloadedAt: .downloaded_at,
+            type: "current"
+          }' > frontend/public/metadata-current.json
+
+          # Créer metadata-future.json
+          echo "$FUTURE_DATA" | jq --arg ts "$TIMESTAMP" '{
+            cycle: .cycle,
+            effectiveDate: .effective_date,
+            version: .version,
+            generatedAt: $ts,
+            source: (.path | split("/") | last),
+            downloadedAt: .downloaded_at,
+            type: "future"
+          }' > frontend/public/metadata-future.json
+
+          # Créer rad-versions.json
+          jq -n --arg ts "$TIMESTAMP" \
+            --argjson current "$(cat frontend/public/metadata-current.json)" \
+            --argjson future "$(cat frontend/public/metadata-future.json)" \
+            '{
+              lastUpdate: $ts,
+              versions: {
+                current: {
+                  cycle: $current.cycle,
+                  effectiveDate: $current.effectiveDate,
+                  version: $current.version
+                },
+                future: {
+                  cycle: $future.cycle,
+                  effectiveDate: $future.effectiveDate,
+                  version: $future.version
+                }
+              }
+            }' > frontend/public/rad-versions.json
+
+          echo "✅ Metadata files created"
+
+      - name: Check if RAD versions changed
+        id: check_changes
+        run: |
+          # Vérifier si les fichiers JSON ont changé
+          git add frontend/public/*.json
+
+          if git diff --cached --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No changes detected in RAD versions"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "✅ RAD versions have changed"
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          CURRENT_CYCLE="${{ steps.download.outputs.current_cycle }}"
+          FUTURE_CYCLE="${{ steps.download.outputs.future_cycle }}"
+
+          # Récupérer les versions depuis metadata
+          CURRENT_VERSION=$(jq -r '.version' frontend/public/metadata-current.json)
+          FUTURE_VERSION=$(jq -r '.version' frontend/public/metadata-future.json)
+
+          git commit -m "Auto-update RAD: cycles ${CURRENT_CYCLE}/${FUTURE_CYCLE}
+
+Updated RAD data from EUROCONTROL:
+- Current: Cycle ${CURRENT_CYCLE} v${CURRENT_VERSION}
+- Future: Cycle ${FUTURE_CYCLE} v${FUTURE_VERSION}
+
+🤖 Automated update via GitHub Actions
+Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+          git push
+
+          echo "✅ Changes committed and pushed to GitHub"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📊 RAD Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check_changes.outputs.changed }}" == "true" ]; then
+            echo "✅ **RAD updated successfully**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Current**: Cycle ${{ steps.download.outputs.current_cycle }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Future**: Cycle ${{ steps.download.outputs.future_cycle }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚀 Deployment will be triggered automatically" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ **No changes detected**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "RAD versions are already up to date." >> $GITHUB_STEP_SUMMARY
+          fi
