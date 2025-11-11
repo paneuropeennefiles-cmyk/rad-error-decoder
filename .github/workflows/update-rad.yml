@@ -14,12 +14,21 @@ on:
   #   paths:
   #     - '.github/workflows/update-rad.yml'
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   update-rad:
     runs-on: ubuntu-latest
 
     permissions:
       contents: write  # Nécessaire pour pusher les changements
+      pages: write     # Nécessaire pour déployer sur GitHub Pages
+      id-token: write  # Nécessaire pour l'authentification GitHub Pages
+
+    outputs:
+      changes_detected: ${{ steps.check_changes.outputs.changed }}
 
     steps:
       - name: Checkout repository
@@ -169,14 +178,29 @@ jobs:
 
           echo "Changes committed and pushed to GitHub"
 
-      - name: Trigger deployment
+      - name: Setup Node.js
         if: steps.check_changes.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install frontend dependencies
+        if: steps.check_changes.outputs.changed == 'true'
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        if: steps.check_changes.outputs.changed == 'true'
+        working-directory: ./frontend
+        run: npm run build
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Triggering deployment to GitHub Pages..."
-          gh workflow run deploy.yml --ref main
-          echo "Deployment workflow triggered successfully"
+          NODE_ENV: production
+
+      - name: Upload GitHub Pages artifact
+        if: steps.check_changes.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./frontend/dist
 
       - name: Summary
         if: always()
@@ -196,3 +220,22 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "RAD versions are already up to date." >> $GITHUB_STEP_SUMMARY
           fi
+
+  deploy:
+    needs: update-rad
+    if: needs.update-rad.outputs.changes_detected == 'true'
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
