@@ -3,6 +3,11 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Auto-update RAD (Current + Future)"]
+    types:
+      - completed
+    branches: [ main ]
 permissions:
   contents: read
   pages: write
@@ -13,10 +18,14 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    # Ne déployer que si le workflow update-rad a réussi (ou si c'est un push manuel)
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main  # Toujours récupérer la dernière version de main
         
       - name: Setup Node.js
         uses: actions/setup-node@v4
