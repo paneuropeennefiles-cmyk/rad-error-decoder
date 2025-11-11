@@ -177,7 +177,7 @@ npm run dev
 # → Faire quelques recherches test
 
 # 4. Commiter les changements
-git add frontend/public/*.json
+git add public/*.json
 git commit -m "Update RAD to cycles 2511/2512"
 git push origin main
 
