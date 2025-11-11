@@ -272,50 +272,115 @@ class RADParser:
     def _parse_annex_3a(self, df: pd.DataFrame, sheet_name: str):
         """Parse Annex 3A - Aerodrome Connectivity."""
         entries = []
-        
-        # Déterminer le type
+
+        # Déterminer le type et les noms de colonnes spécifiques
         if 'ARR' in sheet_name:
             entry_type = 'Arrival'
+            id_col = 'ARR ID'
+            ad_col = 'ARR AD'
+            time_col = 'ARR Time\nApplicability'
+            goal_col = 'ARR Operational\nGoal'
+            remarks_col = 'ARR Remarks'
+            extra_cols = {
+                'first_pt_star': 'First PT STAR /\nSTAR ID',
+                'dct_arr_pt': 'DCT ARR PT',
+                'arr_fpl_option': 'ARR FPL Option'
+            }
         elif 'DEP' in sheet_name:
             entry_type = 'Departure'
-        else:
+            id_col = 'DEP ID'
+            ad_col = 'DEP AD'
+            time_col = 'DEP Time\nApplicability'
+            goal_col = 'DEP Operational\nGoal'
+            remarks_col = 'DEP Remarks'
+            extra_cols = {
+                'last_pt_sid': 'Last PT SID /\nSID ID',
+                'dct_dep_pt': 'DCT DEP PT',
+                'dep_fpl_options': 'DEP FPL Options'
+            }
+        else:  # Conditions
             entry_type = 'Condition'
-        
+            id_col = 'RAD Application ID'
+            ad_col = None  # Pas d'aérodrome pour les conditions
+            time_col = 'Time\nApplicability'
+            goal_col = None
+            remarks_col = None
+            extra_cols = {
+                'condition': 'Condition',
+                'explanation': 'Explanation'
+            }
+
         for idx, row in df.iterrows():
-            if pd.isna(row.get('ID')) and pd.isna(row.get('Aerodrome')):
+            # Ignorer les lignes vides (pas d'ID)
+            if pd.isna(row.get(id_col)):
                 continue
-            
+
+            # Structure de base commune à tous les types
             entry = {
-                'id': self._safe_str(row.get('ID')),
-                'aerodrome': self._safe_str(row.get('Aerodrome')),
-                'change_indicator': self._safe_str(row.get('Change Ind.')),
-                'valid_from': self._safe_str(row.get('Valid From')),
-                'valid_until': self._safe_str(row.get('Valid Until')),
-                'utilization': self._safe_str(row.get('Utilization')),
-                'time_applicability': self._safe_str(row.get('Time Applicability')),
-                'remarks': self._safe_str(row.get('Remarks')),
-                
+                'id': self._safe_str(row.get(id_col)),
+                'change_indicator': self._safe_str(row.get('Change\nInd.')),
+                'valid_from': self._safe_str(row.get('Valid\nFrom')),
+                'valid_until': self._safe_str(row.get('Valid\nUntil')),
+                'nas_fab': self._safe_str(row.get('NAS / FAB')),
+                'release_date': self._safe_str(row.get('Release\nDate')),
+                'special_event': self._safe_str(row.get('Special Event and \nCrisis')),
+
                 'annex': '3A',
                 'type': f'Aerodrome Connectivity - {entry_type}',
                 'searchable_text': self._build_searchable_text(row)
             }
-            
+
+            # Ajouter l'aérodrome si applicable
+            if ad_col:
+                entry['aerodrome'] = self._safe_str(row.get(ad_col))
+
+            # Ajouter les champs spécifiques
+            if time_col:
+                entry['time_applicability'] = self._safe_str(row.get(time_col))
+            if goal_col:
+                entry['operational_goal'] = self._safe_str(row.get(goal_col))
+            if remarks_col:
+                entry['remarks'] = self._safe_str(row.get(remarks_col))
+
+            # Ajouter les colonnes extra spécifiques au type
+            for key, col in extra_cols.items():
+                entry[key] = self._safe_str(row.get(col))
+
             entries.append(entry)
-        
+
         return entries
     
     def _parse_annex_3b(self, df: pd.DataFrame, sheet_name: str):
-        """Parse Annex 3B - En-route DCT Options."""
+        """Parse Annex 3B - En-route DCT Options and FRA Limitations."""
         entries = []
-        
-        entry_type = 'FRA Limitation' if 'FRA' in sheet_name else 'DCT Option'
-        
+
+        # Déterminer le type et la colonne ID selon l'onglet
+        if 'FRA' in sheet_name:
+            entry_type = 'FRA Limitation'
+            id_col = 'RAD Application ID'  # FRA LIM utilise cette colonne
+        else:
+            entry_type = 'DCT Option'
+            id_col = 'ID'  # DCT utilise la colonne standard ID
+
+        # Trouver la colonne ID réelle (avec variations possibles)
+        id_col_actual = None
+        for col in df.columns:
+            col_normalized = col.lower().replace(' ', '').replace('\n', '')
+            id_normalized = id_col.lower().replace(' ', '').replace('\n', '')
+            if id_normalized in col_normalized:
+                id_col_actual = col
+                break
+
+        if not id_col_actual:
+            logger.warning(f"Colonne '{id_col}' non trouvée dans {sheet_name}")
+            return entries
+
         for idx, row in df.iterrows():
-            if pd.isna(row.get('ID')):
+            if pd.isna(row.get(id_col_actual)):
                 continue
-            
+
             entry = {
-                'id': self._safe_str(row.get('ID')),
+                'id': self._safe_str(row.get(id_col_actual)),
                 'change_indicator': self._safe_str(row.get('Change Ind.')),
                 'valid_from': self._safe_str(row.get('Valid From')),
                 'valid_until': self._safe_str(row.get('Valid Until')),
@@ -326,14 +391,14 @@ class RADParser:
                 'remarks': self._safe_str(row.get('Remarks')),
                 'atc_unit': self._safe_str(row.get('ATC Unit')),
                 'nas_fab': self._safe_str(row.get('NAS/FAB')),
-                
+
                 'annex': '3B',
                 'type': entry_type,
                 'searchable_text': self._build_searchable_text(row)
             }
-            
+
             entries.append(entry)
-        
+
         return entries
     
     def _safe_str(self, value):
