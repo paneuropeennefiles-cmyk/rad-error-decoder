@@ -41,7 +41,7 @@ function App() {
       
       // Try to load from cache first (IndexedDB)
       // For now, just load from public folder
-      const response = await fetch('/rad-data.json')
+      const response = await fetch(`${import.meta.env.BASE_URL}rad-data.json`)
       if (!response.ok) {
         throw new Error('Failed to load RAD data')
       }
