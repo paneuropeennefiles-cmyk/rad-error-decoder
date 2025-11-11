@@ -9,6 +9,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      workbox: {
+        // 🔧 Augmenter la limite à 20 MB (ou plus si nécessaire)
+        maximumFileSizeToCacheInBytes: 20 * 1024 * 1024, // 20 MB
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}']
+      },
       manifest: {
         name: 'RAD Error Decoder',
         short_name: 'RAD Decoder',
