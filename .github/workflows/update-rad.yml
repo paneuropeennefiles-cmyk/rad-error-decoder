@@ -169,6 +169,15 @@ jobs:
 
           echo "Changes committed and pushed to GitHub"
 
+      - name: Trigger deployment
+        if: steps.check_changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Triggering deployment to GitHub Pages..."
+          gh workflow run deploy.yml --ref main
+          echo "Deployment workflow triggered successfully"
+
       - name: Summary
         if: always()
         run: |
