@@ -1,15 +1,15 @@
-﻿{
-    "lastUpdate":  "2025-11-11T19:02:38Z",
-    "versions":  {
-                     "future":  {
-                                    "effectiveDate":  "2025-12-01",
-                                    "version":  "1.9",
-                                    "cycle":  "2512"
-                                },
-                     "current":  {
-                                     "effectiveDate":  "2025-11-01",
-                                     "version":  "1.19",
-                                     "cycle":  "2511"
-                                 }
-                 }
+{
+  "lastUpdate": "2025-11-11T20:20:00Z",
+  "versions": {
+    "current": {
+      "cycle": "2511",
+      "effectiveDate": "2025-11-01",
+      "version": "1.19"
+    },
+    "future": {
+      "cycle": "2512",
+      "effectiveDate": "2025-12-01",
+      "version": "1.9"
+    }
+  }
 }

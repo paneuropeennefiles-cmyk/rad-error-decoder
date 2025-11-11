@@ -1,9 +1,9 @@
-﻿{
-    "version":  "1.19",
-    "effectiveDate":  "2025-11-01",
-    "source":  "RAD_2511_v1_19.xlsx",
-    "generatedAt":  "2025-11-11T19:02:38Z",
-    "type":  "current",
-    "cycle":  "2511",
-    "downloadedAt":  "2025-11-11T19:01:54.919610"
+{
+  "cycle": "2511",
+  "effectiveDate": "2025-11-01",
+  "version": "1.19",
+  "generatedAt": "2025-11-11T20:20:00Z",
+  "source": "RAD_2511_v1_19.xlsx",
+  "downloadedAt": "2025-11-11T20:19:29.843309",
+  "type": "current"
 }
