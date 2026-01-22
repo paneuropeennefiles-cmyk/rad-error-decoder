@@ -1,9 +1,9 @@
 {
-  "cycle": "2513",
-  "effectiveDate": "2025-13-01",
-  "version": "1.13",
-  "generatedAt": "2026-01-15T08:27:55Z",
-  "source": "RAD_2513_v1_13.xlsx",
-  "downloadedAt": "2026-01-15T08:27:22.186176",
+  "cycle": "2601",
+  "effectiveDate": "2026-01-01",
+  "version": "1.15",
+  "generatedAt": "2026-01-22T08:28:32Z",
+  "source": "RAD_2601_v1_15.xlsx",
+  "downloadedAt": "2026-01-22T08:28:02.697488",
   "type": "current"
 }
