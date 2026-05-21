@@ -3,7 +3,7 @@
     "cycle": "2606",
     "version": "1.0",
     "filename": "RAD_2606_v1_0.xlsx",
-    "parsed_at": "2026-05-14T10:12:00.671745"
+    "parsed_at": "2026-05-21T11:19:06.771145"
   },
   "annexes": {
     "annex1_areas": [
@@ -378526,7 +378526,7 @@
   },
   "stats": {
     "total_entries": 19646,
-    "parsed_at": "2026-05-14T10:12:11.080774",
+    "parsed_at": "2026-05-21T11:19:16.880137",
     "by_annex": {
       "annex1_areas": 118,
       "annex2a_capping": 1093,
