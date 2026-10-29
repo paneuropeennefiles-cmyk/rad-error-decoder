@@ -1,15 +1,15 @@
 {
-  "lastUpdate": "2026-10-22T13:24:26Z",
+  "lastUpdate": "2026-10-29T14:55:03Z",
   "versions": {
     "current": {
-      "cycle": "2610",
-      "effectiveDate": "2026-10-01",
-      "version": "1.25"
-    },
-    "future": {
       "cycle": "2611",
       "effectiveDate": "2026-11-01",
-      "version": "1.13"
+      "version": "1.17"
+    },
+    "future": {
+      "cycle": "2612",
+      "effectiveDate": "2026-12-01",
+      "version": "1.0"
     }
   }
 }
